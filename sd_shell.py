@@ -4,16 +4,10 @@ import os.path
 import json
 import re
 import crypt
-import pwd
+import secrets
 
 
 USER_LIST = "./user_list.json"
-
-
-class User:
-    email = ""
-    password = ""
-    contacts = []
 
 
 def password_check(password):
@@ -61,39 +55,71 @@ def password_check(password):
     }
 
 
-def hash_password(password):
-    pass
+def credentials():
+    email = input("Enter email: ")
+    password = getpass("Enter password: ")
+    return (email, password)
 
 
+def hash_password(password, salt):
+    return crypt.crypt(password, salt)
+
+
+# User registration Function.  Checks password for complexity and for
+# matching.  If it passes the checks it then hashes the password and stores
+# the hash and salt for login later.
+#
+# TODO: Needs cleanup. The code is messy right now and has some redundancies.
 def user_registration(file):
-    user = User()
-    user.email = input("Enter email:")
-    user.password = getpass("Enter password:")
-    check = password_check(user.password)
-    # loop untill password is correct.  This can be better written.
-    while not check.get("password_ok"):
-        print(
-            "Password not strong enough. A password is considered strong if:"
-            "\n8 characters length or more"
-            "\n1 digit or more"
-            "\n1 symbol or more"
-            "\n1 uppercase letter or more"
-            "\n1 lowercase letter or more"
-        )
-        user.email = input("Enter email:")
-        user.password = getpass("Enter password:")
-        check = password_check(user.password)
+    name = input("Enter Full name: ")
+    creds = credentials()
+    email = creds[0]
+    password = creds[1]
+    second_pass = getpass("Re-enter Password")
+    check = password_check(password)
+    # loop until password is correct.  This can be better written.
+    while not check.get("password_ok") or password != second_pass:
+        if password != second_pass:
+            print("Passwords don't match.")
+        elif not check.get("password_ok"):
+            print(
+                "Password not strong enough. A password is considered strong if:"
+                "\n8 characters length or more"
+                "\n1 digit or more"
+                "\n1 symbol or more"
+                "\n1 uppercase letter or more"
+                "\n1 lowercase letter or more."
+            )
+        password = getpass("Enter password:")
+        second_pass = getpass("Re-enter Password")
+        check = password_check(password)
 
-    hash_password(user.password)
+    salt = secrets.token_hex(8)
+    h_password = hash_password(password, salt)
+
     dict = {}
-    dict["emails"] = []
-    dict["emails"].append({"email": user.email, "password": user.password})
+    dict["Users"] = []
+    dict["Users"].append({email: {"name": name, "password": h_password, "salt": salt}})
     json.dump(dict, f)
     file.close()
 
 
 def user_login():
-    pass
+    creds = credentials()
+    email = creds[0]
+    password = creds[1]
+    old_pass = ""
+    salt = ""
+    with open(USER_LIST) as f:
+        data = json.load(f)
+        for p in data["Users"]:
+            salt = p[email]["salt"]
+            old_pass = p[email]["password"]
+    new_pass = hash_password(password, salt)
+    if old_pass == new_pass:
+        print("password is correct")
+    else:
+        print("password is incorrect")
 
 
 class MyPrompt(Cmd):
@@ -101,7 +127,6 @@ class MyPrompt(Cmd):
     intro = "Welcome! Type ? to list commands"
 
     def do_exit(self, inp):
-        print("bye")
         return True
 
     def help_exit(self):
@@ -140,7 +165,17 @@ if __name__ == "__main__":
     if os.path.isfile(USER_LIST) and os.path.getsize(USER_LIST) > 0:
         user_login()
     else:
-        f = open(USER_LIST, "w")
-        user_registration(f)
+        print(
+            "No users are registered with this client."
+            "\nDo you want to register a new user (y/n)?"
+        )
+        inp = input()
+        if inp == "y":
+            f = open(USER_LIST, "w")
+            user_registration(f)
+        elif inp == "n":
+            exit(1)
+        else:
+            exit(1)
 
     MyPrompt().cmdloop()
