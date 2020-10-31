@@ -104,7 +104,9 @@ def user_registration(file):
     file.close()
 
 
-def user_login():
+# TODO: Implement code to check if email is registered
+def login_helper():
+    bool = False
     creds = credentials()
     email = creds[0]
     password = creds[1]
@@ -118,8 +120,21 @@ def user_login():
     new_pass = hash_password(password, salt)
     if old_pass == new_pass:
         print("password is correct")
+        bool = True
     else:
         print("password is incorrect")
+        bool = False
+    return bool
+
+
+# TODO: Implement session ID to keep login relevant
+def user_login():
+    count = 0
+    while count < 3:
+        if not login_helper():
+            count += 1
+        else:
+            count = 4
 
 
 class MyPrompt(Cmd):
@@ -169,13 +184,13 @@ if __name__ == "__main__":
             "No users are registered with this client."
             "\nDo you want to register a new user (y/n)?"
         )
-        inp = input()
+        inp = ""
+        while inp != "y" and inp != "n":
+            inp = input()
         if inp == "y":
             f = open(USER_LIST, "w")
             user_registration(f)
         elif inp == "n":
-            exit(1)
-        else:
             exit(1)
 
     MyPrompt().cmdloop()
