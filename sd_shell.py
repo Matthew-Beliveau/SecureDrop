@@ -56,9 +56,28 @@ def password_check(password):
 
 
 def credentials():
-    email = input("Enter email: ")
+    email = check_email()
+    # add method to check if email is valid
     password = getpass("Enter password: ")
     return (email, password)
+
+
+def check_email():
+    # regular expression for validating email
+    regex = '^[a-z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$'
+    i = 1
+    
+    while i == 1:
+        email = input("Enter email: ")
+
+        if(re.search(regex, email)):
+            print("Valid Email")
+            i = 0
+        else:
+            print("Invalid Email")
+    
+    return email
+    
 
 
 def hash_password(password, salt):
@@ -77,6 +96,7 @@ def user_registration(file):
     password = creds[1]
     second_pass = getpass("Re-enter Password")
     check = password_check(password)
+
     # loop until password is correct.  This can be better written.
     while not check.get("password_ok") or password != second_pass:
         if password != second_pass:
@@ -162,7 +182,6 @@ class MyPrompt(Cmd):
     def default(self, inp):
         if inp == "x" or inp == "q":
             return self.do_exit(inp)
-
             print("Default {}".format(inp))
 
     do_EOF = do_exit
