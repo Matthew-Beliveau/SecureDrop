@@ -89,6 +89,7 @@ def hash_password(password, salt):
 # the hash and salt for login later.
 #
 # TODO: Needs cleanup. The code is messy right now and has some redundancies.
+#       - could create a function out of pw error section 
 def user_registration(file):
     name = input("Enter Full name: ")
     creds = credentials()
@@ -102,14 +103,19 @@ def user_registration(file):
         if password != second_pass:
             print("Passwords don't match.")
         elif not check.get("password_ok"):
-            print(
-                "Password not strong enough. A password is considered strong if:"
-                "\n8 characters length or more"
-                "\n1 digit or more"
-                "\n1 symbol or more"
-                "\n1 uppercase letter or more"
-                "\n1 lowercase letter or more."
-            )
+            
+            # print out the correct password error
+            if check.get("length_error"):
+                print('8 characters in length or more!')
+            if check.get("digit_error"):
+                print('1 digit or more')
+            if check.get("symbol_error"):
+                print('1 symbol or more')
+            if check.get("uppercase_error"):
+                print('1 uppercase letter or more')
+            if check.get("lowercase_error"):
+                print('lowercase letter or more.')
+    
         password = getpass("Enter password:")
         second_pass = getpass("Re-enter Password")
         check = password_check(password)
@@ -129,6 +135,17 @@ def login_helper():
     bool = False
     creds = credentials()
     email = creds[0]
+    
+    # testing how to check if email exists in JSON file
+    if email in USER_LIST:
+        print("Email exists!")
+    if email not in USER_LIST:
+        print("Email not in user list?")
+    
+    
+    # testing how to check if email exists in JSON file
+
+    
     password = creds[1]
     old_pass = ""
     salt = ""
