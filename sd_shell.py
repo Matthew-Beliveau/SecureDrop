@@ -6,6 +6,8 @@ import re
 import crypt
 import secrets
 
+from pprint import pprint # not necessary please remove just for testing JSON FILES using pretty print 
+
 
 USER_LIST = "./user_list.json"
 
@@ -71,10 +73,10 @@ def check_email():
         email = input("Enter email: ")
 
         if(re.search(regex, email)):
-            print("Valid Email")
+            # print("Valid Email")
             i = 0
         else:
-            print("Invalid Email")
+            print("Incorrect email format!")
     
     return email
     
@@ -136,33 +138,38 @@ def login_helper():
     creds = credentials()
     email = creds[0]
     
-    # testing how to check if email exists in JSON file
-    if email in USER_LIST:
-        print("Email exists!")
-    if email not in USER_LIST:
-        print("Email not in user list?")
     
+    json_data = open(USER_LIST)
+    jdata = json.load(json_data)
+    user_data = jdata['Users'] 
     
-    # testing how to check if email exists in JSON file
-
+    # case where email exists in JSON file
+    if email in user_data[0]:
+        print('Email exists, you may proceed!')
+        password = creds[1]
+        old_pass = ""
+        salt = ""
+        with open(USER_LIST) as f:
+            data = json.load(f)
+            for p in data["Users"]:
+                salt = p[email]["salt"]
+                old_pass = p[email]["password"]
+        new_pass = hash_password(password, salt)
+        if old_pass == new_pass:
+            print("password is correct")
+            bool = True
+        else:
+            print("password is incorrect")
+            bool = False
+        return bool
     
-    password = creds[1]
-    old_pass = ""
-    salt = ""
-    with open(USER_LIST) as f:
-        data = json.load(f)
-        for p in data["Users"]:
-            salt = p[email]["salt"]
-            old_pass = p[email]["password"]
-    new_pass = hash_password(password, salt)
-    if old_pass == new_pass:
-        print("password is correct")
-        bool = True
-    else:
-        print("password is incorrect")
-        bool = False
-    return bool
-
+    # case where email DNE in JSON file
+    elif email not in user_data[0]:
+        print('\nUser with that email not registered!')
+        print('Try again\n')
+        return False
+        
+       
 
 # TODO: Implement session ID to keep login relevant
 def user_login():
