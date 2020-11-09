@@ -133,9 +133,14 @@ def login_helper():
     bool = False
     email = check_email()
     #if email is None then the user mis-entered their email three times, so exit
-    if email is None:
-        return bool
-    else: 
+    
+    json_data = open(USER_LIST)
+    jdata = json.load(json_data)
+    user_data = jdata['Users']
+    
+    # case where email exists in JSON file
+    if email in user_data[0]:
+        print('Email exists, you may proceed!')
         while number_of_password_login_attempts < MAX_TIMES_ALLOWED_TO_ENTER:
             password = get_password() #get the user's password attempt
             old_pass = ""
@@ -154,6 +159,11 @@ def login_helper():
                 print("password is incorrect")
                 bool = False
                 number_of_password_login_attempts +=1
+    
+    elif email not in user_data[0]:
+        print('\nUser with that email not registered!')
+        print('Exiting\n')
+        
     return bool
 
 
