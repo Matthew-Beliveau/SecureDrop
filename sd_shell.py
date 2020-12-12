@@ -210,10 +210,7 @@ class MyPrompt(Cmd):
         print("exit the application. Shorthand: x q Ctrl-d")
 
     def do_add(self, inp):
-<<<<<<< Updated upstream
         add_contact()
-=======
->>>>>>> Stashed changes
 
     def help_add(self):
         print("Add a new contact.")
