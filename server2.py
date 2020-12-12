@@ -18,6 +18,8 @@ our_email = "h@gmail.com"
 CONNECTION_CONFIRMATION = "CONF"
 CONNECTION_FAIL_MESSAGE = "FAIL"
 
+I_AM_SERVER = False
+
 #Lock object to protect send_possible_list
 lock_object = threading.Lock()
 
@@ -43,15 +45,14 @@ def message_handling(msg):
     return message, send_length
 
 def handshake(conn, address):
-    #connected = True 
-    #while connected:
-    msg_length = conn.recv(HEADER).decode(FORMAT) #receive header message
+    try:
+        msg_length = conn.recv(HEADER).decode(FORMAT) #receive header message
+    except ConnectionResetError:
+        return 0
     if msg_length:
         msg_length = int(msg_length)
         msg = conn.recv(msg_length).decode(FORMAT) #read up to msg_length characters
         print(f"[{address}] {msg}", "actual message is: ", msg)
-        #if msg == DISCONNECT_MESSAGE:
-            #connected = False
         #We have client's email, now we determine if client is in our list
         #The following check will be executed with the function I implemented in SD
         if msg == c_email: #client in our list, so send our email
@@ -81,12 +82,17 @@ def handshake(conn, address):
                         if msg not in send_possible_list:
                             send_possible_list[msg] = address[1]
                             print(send_possible_list)
-                            conn.close()
+                            #conn.detach()
                             Is_lock_not_available = False
                             lock_object.release()
-                            exit()
-                        Is_lock_not_available = False
-                        lock_object.release() #release at will
+                            #exit()
+                        else:
+                            print("ignored duplicate request")
+                            conn.close()
+                            Is_lock_not_available = False
+                            lock_object.release() #release at will
+                            #exit()
+                            return 0
                         #At this point, we've updated send_possible_list
                         #We now wait for a disconnect message
                         is_client_online = True
@@ -95,16 +101,19 @@ def handshake(conn, address):
                             if msg_length:
                                 msg_length = int(msg_length)
                                 dc = conn.recv(msg_length).decode(FORMAT)
-                                is_client_online = False
-                                print(dc)
+                                if dc == DISCONNECT_MESSAGE:
+                                    is_client_online = False
+                                    print(dc)
+                                else:
+                                    continue
                                 #we got disconnect message
                                 #get lock, update send_possible_list, end handshake
                                 while Is_lock_not_available2:
                                     if not lock_object.locked():
                                         lock_object.acquire()
                                         #edit send_possible_list
+                                        print("removed ", send_possible_list[msg])
                                         del send_possible_list[msg]
-                                        print("boom baby: {address[1]}")
                                         Is_lock_not_available2 = False
                                         lock_object.release()
                                         conn.close()
@@ -113,17 +122,14 @@ def handshake(conn, address):
 
 def send(msg):
     message, sl = message_handling(msg)
-    cond = True
-    while cond:
-        try:
-            server.send(sl) #send header
-            cond = False
-        except BrokenPipeError:
-            #print("no one is online yet")
-            pass
-        except OSError:
-            pass
-    server.send(message)
+    try:
+        server.send(sl) #send header
+        server.send(message) 
+    except BrokenPipeError:
+        return 0
+    except OSError:
+        return 0
+    #server.send(message)
     #we got server's email back, need to check if they in our list
     msg_length = server.recv(HEADER).decode(FORMAT)
     if msg_length:
@@ -138,28 +144,57 @@ def send(msg):
             fail_msg, sl = message_handling(CONNECTION_FAIL_MESSAGE)
             server.send(sl)
             server.send(fail_msg)
-            server.close()
+            server.detach()
 
 def send_dc(msg):
     dc_msg, sl = message_handling(DISCONNECT_MESSAGE)
     server.send(sl)
     server.send(dc_msg)
-    server.close()
+    server.detach()
+
+def server_sends_port_list():
+    cond = True
+    num_elements = 0
+    while cond:
+        if not lock_object_port.locked():
+            lock_object_port.acquire()
+            #print("sending ports list")
+            num_elements = len(ports_seen)
+            for i in range(num_elements):
+                encoded_port, send_length = message_handling(str(ports_seen[i]))
+                try:
+                    server.send(send_length)
+                    server.send(encoded_port)
+                except BrokenPipeError:
+                    lock_object_port.release()
+                    break
+            #cond = False
+            lock_object_port.release()
+
+def client_receive_ports_seen():
+    port_list = []
+    cond = True
+    msg_length = server.recv(HEADER).decode(FORMAT)
+    if msg_length:
+        msg_length = int(msg_length)
+        print("receiving ports list")
+        while cond:
+            port = server.recv(msg_length).decode(FORMAT)
+            if port:
+                port_list.append(port)
+            else:
+                cond = False
+        print(port_list)
 
 #This is the listen/scan thread -> needs to be run in seperate thread
 def listen_start():
     print("listening thread activated")
-    cond = True
-    while cond:
-        try:
-            server.listen()
-            cond = False
-        except OSError:
-            pass
+
+    server.listen()
+             
     while True:
         #waits for another user to connect or "appear online"
         conn, address = server.accept()
-
         #This block of code adds the port just seen to the ports_seen list if it
         #is not already in the list
         port_just_seen_not_added = True
@@ -178,26 +213,50 @@ def listen_start():
 
 def send_email_over_network():
     time_now = time.time()
-    t_end = time.time() + 2
+    t_end = time_now + 10
     while time_now < t_end:
+    #while True:
+        #print("sending server email")
         send(our_email)
-        t_end += time_now + 1
+        t_end += 10
 
 #Now we try and bind to the socket, if we can, we are the first online, if not, we
 #must be a client
 try:
     server.bind(Address)
+    listening_thread = threading.Thread(target=listen_start)
+    listening_thread.start()
+    #time_now = time.time()
+    #t_end = time_now + 15
+    #while time_now < t_end:
+    server_send_pl = threading.Thread(target=server_sends_port_list)
+    server_send_pl.start()
+    #t_end += 15
 except OSError:
     print("I'm a client")
-    #Now we connect to server
     server.connect(Address)
-
+    time_now = time.time()
+    t_end = time_now + 10
+    while time_now < t_end:
+    #while True:
+        #print("client sending email")
+        send(c_email) #To get a valid message send from server to client do: c_email
+        try:
+            addr = server.getsockname()
+            client_receive_message = threading.Thread(target = handshake, args = (server, addr[1]))
+            client_receive_message.start()
+            #print("received message on client side")
+        except OSError:
+            #print("connection not possible")
+            #exit()
+            pass
+        print("do i run?")
+        client_gets_ports = threading.Thread(target = client_receive_ports_seen)
+        client_gets_ports.start()
+        t_end += 10
 #At this point we are either a server or a client, either way, we need to begin 
 #sending our email across the network
 
 send_thread = threading.Thread(target=send_email_over_network)
 send_thread.start()
-
-listening_thread = threading.Thread(target=listen_start)
-listening_thread.start()
 
