@@ -160,26 +160,13 @@ def list_all_user_contacts():
         count += 1
     return user_contact_email_addresses
 
-class MyPrompt(Cmd):
-    prompt = "secure_drop> "
-    intro = "Welcome! Type ? to list commands"
-
-    def do_exit(self, inp):
-        return True
-
-    def help_exit(self):
-        print("exit the application. Shorthand: x q Ctrl-d")
-
-    def do_add(self, inp):
-<<<<<<< Updated upstream
-        add_contact()
-=======
-        fp = open("user_list.json", "r+")
+def add_contact():
+    fp = open("user_list.json", "r+")
         data = json.load(fp) #load all json data into a string
-    
+
         #get the user email
         user_email = list(data['Users'][0].keys())[0]
-        
+
         #get all data associated with user
         u_dictionary = data['Users'][0][user_email]
 
@@ -204,12 +191,28 @@ class MyPrompt(Cmd):
         else: #user has never added a contact before
             email, name = add_contact() #get email and name the user wants to add
             u_dictionary['contacts'] = [{'email': email, 'name': name}] #create new field name -> contacts
-            data['Users'][0][user_email] = u_dictionary #add the email and name the user wants to contact to their contacts 
-            fp.seek(0) #return file pointer to beginning of json file 
+            data['Users'][0][user_email] = u_dictionary #add the email and name the user wants to contact to their contacts
+            fp.seek(0) #return file pointer to beginning of json file
             json.dump(data, fp) #add new information to json file
             print("Contact Added.")
             fp.close()
             #print(list_all_user_contacts())
+
+
+class MyPrompt(Cmd):
+    prompt = "secure_drop> "
+    intro = "Welcome! Type ? to list commands"
+
+    def do_exit(self, inp):
+        return True
+
+    def help_exit(self):
+        print("exit the application. Shorthand: x q Ctrl-d")
+
+    def do_add(self, inp):
+<<<<<<< Updated upstream
+        add_contact()
+=======
 >>>>>>> Stashed changes
 
     def help_add(self):
