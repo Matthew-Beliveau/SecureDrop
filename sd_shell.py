@@ -144,6 +144,22 @@ def add_contact():
         fp.close()
 
 
+def list_all_user_contacts():
+    user_contact_email_addresses = []
+    count = 0
+
+    fp = open("user_list.json", "r+")
+    data = json.load(fp)
+    fp.close()
+
+    user_email = list(data['Users'][0].keys())[0]
+    u_dictionary = data['Users'][0][user_email]['contacts']
+    
+    for x in u_dictionary:
+        user_contact_email_addresses.append(u_dictionary[count].get('email'))
+        count += 1
+    return user_contact_email_addresses
+
 class MyPrompt(Cmd):
     prompt = "secure_drop> "
     intro = "Welcome! Type ? to list commands"
@@ -155,7 +171,46 @@ class MyPrompt(Cmd):
         print("exit the application. Shorthand: x q Ctrl-d")
 
     def do_add(self, inp):
+<<<<<<< Updated upstream
         add_contact()
+=======
+        fp = open("user_list.json", "r+")
+        data = json.load(fp) #load all json data into a string
+    
+        #get the user email
+        user_email = list(data['Users'][0].keys())[0]
+        
+        #get all data associated with user
+        u_dictionary = data['Users'][0][user_email]
+
+        if contacts_exist(u_dictionary): #if user has already added a contact
+            email, name = add_contact()
+            email_exist = user_contact_exist(data['Users'][0][user_email]['contacts'], email) #check to see if the email the user wants to add already exists
+            if email_exist: #email already exists
+                #data['Users'][0][user_email]['contacts'].clear()
+                #data['Users'][0][user_email]['contacts'] = u_d_temp
+                #fp.seek(0)
+                #json.dump(data, fp)
+                fp.close()
+                update_user_contact(email, name)
+                #print("Contact Added.")
+            else: #email does not exist
+                data['Users'][0][user_email]['contacts'].append({'email': email, 'name': name})
+                fp.seek(0)
+                json.dump(data, fp)
+                fp.close()
+            print("Contact Added.")
+            #print(list_all_user_contacts())
+        else: #user has never added a contact before
+            email, name = add_contact() #get email and name the user wants to add
+            u_dictionary['contacts'] = [{'email': email, 'name': name}] #create new field name -> contacts
+            data['Users'][0][user_email] = u_dictionary #add the email and name the user wants to contact to their contacts 
+            fp.seek(0) #return file pointer to beginning of json file 
+            json.dump(data, fp) #add new information to json file
+            print("Contact Added.")
+            fp.close()
+            #print(list_all_user_contacts())
+>>>>>>> Stashed changes
 
     def help_add(self):
         print("Add a new contact.")
