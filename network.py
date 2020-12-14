@@ -3,9 +3,8 @@ import sys
 import ssl
 import socket
 from time import sleep
-from multiprocessing import Process
 from socketserver import BaseRequestHandler, TCPServer
-from utilities import user_contact_exist, get_user_name_from_list
+from utilities import contacts_dict_exist, get_user_name_from_list
 from utilities import check_user_contact
 import utilities
 from threading import Thread
@@ -56,11 +55,14 @@ class tcp_handler(BaseRequestHandler):
         # print("Echoing message from: {}".format(self.client_address[0]))
         # print(self.data)
         if type(eval(self.data)) is tuple:
-            self.data = eval(self.data)
-            email_exists = check_user_contact(self.data)
-            if email_exists:
-                self.request.sendall("Yes".encode())
-            elif not email_exists:
+            if contacts_dict_exist():
+                self.data = eval(self.data)
+                email_exists = check_user_contact(self.data)
+                if email_exists:
+                    self.request.sendall("Yes".encode())
+                elif not email_exists:
+                    self.request.sendall("No".encode())
+            else:
                 self.request.sendall("No".encode())
         else:
             self.request.sendall("AWK from server".encode())
@@ -80,7 +82,7 @@ def tcp_listener(port):
         server.shutdown()
 
 
-def tcp_client(port, data):
+def tcp_client(port, data, is_file=False):
     host_ip = "127.0.0.1"
 
     # Initialize a TCP client socket using SOCK_STREAM
@@ -91,14 +93,25 @@ def tcp_client(port, data):
 
     s = cntx.wrap_socket(s, server_hostname="test.server")
 
-    try:
-        # Establish connection to TCP server and exchange data
-        s.connect((host_ip, port))
-        s.sendall(data.encode())
-        # Read data from the TCP server and close the connection
-        recieved = s.recv(1024)
-    finally:
-        s.close()
+    if not is_file:
+        try:
+            # Establish connection to TCP server and exchange data
+            s.connect((host_ip, port))
+            s.sendall(data.encode())
+            # Read data from the TCP server and close the connection
+            recieved = s.recv(1024)
+        finally:
+            s.close()
+    elif is_file:
+        pass
+        # sending file code goes here
+        # s.connect((host_ip, port))
+        # f = open(data, "rb")
+        # l = f.read(1023)
+        # while l:
+        #     s.send(l)
+        #     l = f.read(1024)
+        # f.close()
 
     # print("Bytes Sent:     {}".format(data))
     # print("Bytes Recieved: {}".format(recieved.decode()))
@@ -196,7 +209,6 @@ def communication_manager():
 
     try:
         for p in procs:
-            print("Starting: {}".format(p.name))
             p.start()
 
     except KeyboardInterrupt:

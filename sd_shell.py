@@ -1,5 +1,6 @@
 from utilities import ONLINE_CONTACTS, register_email, user_contact_exist
-from utilities import USER_EMAIL
+from utilities import USER_EMAIL, contacts_dict_exist
+from network.py import tcp_client
 import utilities
 from cmd import Cmd
 import time
@@ -51,13 +52,6 @@ def listen_for_scan():
     pass
 
 
-# Function to see if "contacts" field exists in json file
-def contacts_dict_exist(user_dictionary):
-    if "contacts" in user_dictionary:
-        return True
-    return False
-
-
 # Function to get contact info from user
 def contact_details():
     name = input("Enter Full Name: ")
@@ -103,7 +97,7 @@ def add_contact():
     # get all data associated with user
     u_dictionary = data["Users"][0][user_email]
 
-    if contacts_dict_exist(u_dictionary):  # if user has already added a contact
+    if contacts_dict_exist():  # if user has already added a contact
         email, name = contact_details()
         email_exist = user_contact_exist(
             data["Users"][0][user_email]["contacts"], email
@@ -135,6 +129,15 @@ def add_contact():
         fp.close()
 
 
+def send_file(file, email):
+    port = 0
+    for p in utilities.ONLINE_CONTACTS:
+        if p[1] == email:
+            port = p[2]
+            break
+    tcp_client(port, file, True)
+
+
 class MyPrompt(Cmd):
     prompt = "secure_drop> "
     intro = "Welcome! Type ? to list commands"
@@ -150,6 +153,14 @@ class MyPrompt(Cmd):
 
     def help_add(self):
         print("Add a new contact.")
+
+    def do_send(self, inp):
+        email = input("Enter email address: ")
+        file = input("Enter File: ")
+        send_file(file, email)
+
+    def help_send(self):
+        pass
 
     def do_list(self, inp):
         print(utilities.ONLINE_CONTACTS)

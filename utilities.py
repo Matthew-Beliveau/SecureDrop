@@ -131,3 +131,18 @@ def check_user_contact(data):
     )
     fp.close()
     return email_exists
+
+
+# Function to see if "contacts" field exists in json file
+def contacts_dict_exist():
+    fp = open("user_list.json", "r+")
+    data = json.load(fp)  # load all json data into a string
+
+    # get the user email
+    user_email = list(data["Users"][0].keys())[0]
+
+    # get all data associated with user
+    u_dictionary = data["Users"][0][user_email]
+    if "contacts" in u_dictionary:
+        return True
+    return False
