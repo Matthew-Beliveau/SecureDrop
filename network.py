@@ -52,14 +52,18 @@ class tcp_handler(BaseRequestHandler):
         This function is what can handle whether or not the sender is a contact
         """
         self.data = self.request.recv(1024).strip()
-        self.data = eval(self.data)
+        # self.data = eval(self.data)
         # print("Echoing message from: {}".format(self.client_address[0]))
         # print(self.data)
-        email_exists = check_user_contact(self.data)
-        if email_exists:
-            self.request.sendall("Yes".encode())
-        elif not email_exists:
-            self.request.sendall("No".encode())
+        if type(eval(self.data)) is tuple:
+            self.data = eval(self.data)
+            email_exists = check_user_contact(self.data)
+            if email_exists:
+                self.request.sendall("Yes".encode())
+            elif not email_exists:
+                self.request.sendall("No".encode())
+        else:
+            self.request.sendall("AWK from server".encode())
 
 
 def tcp_listener(port):
@@ -102,7 +106,7 @@ def tcp_client(port, data):
         if potential_contact not in utilities.ONLINE_CONTACTS:
             utilities.ONLINE_CONTACTS.append(potential_contact)
         # print(utilities.ONLINE_CONTACTS)
-    if recieved.decode() == "No":
+    elif recieved.decode() == "No":
         pass
 
 
@@ -209,10 +213,10 @@ def communication_manager():
 #               Main                  #
 #######################################
 
-#
-# def main():
-#     communication_manager()
-#
-#
-# if __name__ == "__main__":
-#     main()
+
+def main():
+    communication_manager()
+
+
+if __name__ == "__main__":
+    main()
