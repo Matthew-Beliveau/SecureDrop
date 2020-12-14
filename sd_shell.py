@@ -1,6 +1,6 @@
 from utilities import ONLINE_CONTACTS, register_email, user_contact_exist
 from utilities import USER_EMAIL, contacts_dict_exist
-from network.py import tcp_client
+from network import tcp_client
 import utilities
 from cmd import Cmd
 import time

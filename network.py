@@ -13,6 +13,8 @@ own_ip = None
 
 potential_contact = ()
 
+ignore_bcast_port = []
+
 
 def init_ip():
     global own_ip
@@ -54,17 +56,30 @@ class tcp_handler(BaseRequestHandler):
         # self.data = eval(self.data)
         # print("Echoing message from: {}".format(self.client_address[0]))
         # print(self.data)
-        if type(eval(self.data)) is tuple:
-            if contacts_dict_exist():
-                self.data = eval(self.data)
-                email_exists = check_user_contact(self.data)
-                if email_exists:
-                    self.request.sendall("Yes".encode())
-                elif not email_exists:
+        # print(type(self.data))
+        try:
+            if type(eval(self.data)) is tuple:
+                if contacts_dict_exist():
+                    self.data = eval(self.data)
+                    email_exists = check_user_contact(self.data)
+                    if email_exists:
+                        self.request.sendall("Yes".encode())
+                    elif not email_exists:
+                        self.request.sendall("No".encode())
+                else:
                     self.request.sendall("No".encode())
-            else:
-                self.request.sendall("No".encode())
-        else:
+        except SyntaxError:
+            with open("recieved_file", "wb") as f:
+                f.write(self.data)
+                print("file opened")
+                while True:
+                    print("hang up in handle")
+                    self.data = self.request.recv(1024)
+                    if self.data == "stop":
+                        break
+                    print(self.data)
+                    f.write(self.data)
+
             self.request.sendall("AWK from server".encode())
 
 
@@ -103,23 +118,30 @@ def tcp_client(port, data, is_file=False):
         finally:
             s.close()
     elif is_file:
-        pass
-        # sending file code goes here
-        # s.connect((host_ip, port))
-        # f = open(data, "rb")
-        # l = f.read(1023)
-        # while l:
-        #     s.send(l)
-        #     l = f.read(1024)
-        # f.close()
+        try:
+            s.connect((host_ip, port))
+            f = open(data, "rb")
+            l = f.read(1024)
+            while l:
+                print("file hang up")
+                s.send(l)
+                l = f.read(1024)
+            recieved = s.recv(1024)
+        finally:
+            s.send("stop")
+            f.close()
+            s.close()
 
     # print("Bytes Sent:     {}".format(data))
     # print("Bytes Recieved: {}".format(recieved.decode()))
     if recieved.decode() == "Yes":
         if potential_contact not in utilities.ONLINE_CONTACTS:
             utilities.ONLINE_CONTACTS.append(potential_contact)
+            ignore_bcast_port.append(potential_contact[3])
         # print(utilities.ONLINE_CONTACTS)
     elif recieved.decode() == "No":
+        pass
+    else:
         pass
 
 
@@ -133,8 +155,6 @@ def broadcast_listener(socket):
         while True:
             data = socket.recvfrom(4096)
             data = eval(data[0])
-            # right now print the data recieved, but later we will check it
-            # against user's contact list, and see if contact is there.
             # print(data)
             # code to check if in contacts
             email_exists = check_user_contact(data)
