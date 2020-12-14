@@ -1,55 +1,9 @@
 from utilities import ONLINE_CONTACTS, register_email, user_contact_exist
-from utilities import USER_EMAIL, contacts_dict_exist
+from utilities import contacts_dict_exist
 from network import tcp_client
 import utilities
 from cmd import Cmd
-import time
 import json
-import sched
-
-
-class ScanTask:
-    def __init__(self):
-        self._running = True
-
-    def terminate(self):
-        self._running = False
-
-    def run(self):
-        self.scan_for_online_contacts()
-
-    s = sched.scheduler(time.time, time.sleep)
-
-    # Scheduled function to scan network on a certain socket to determine
-    # online contacts.
-    # TODO: add implementation in form of separate file.
-    def scan(self, sc):
-        """
-        This function is currently a placeholder for a real scanning
-        function/file. Real scan is to be added later. The plan is to have the
-        scan return a dictionary and store it in the variable ONLINE_CONTACTS.
-
-        Example code for how this function could interact with ONLINE_CONTACTS
-        is as follows:
-        global ONLINE_CONTACTS
-        ONLINE_CONTACTS = random.randint(100, size=(3))
-        """
-        if not self._running:
-            return None
-        self.s.enter(5, 1, self.scan, (sc,))
-
-    # Helper function to run scan on a certain interval. This function is ran
-    # on a separate thread.
-    def scan_for_online_contacts(self):
-        self.s.enter(5, 1, self.scan, (self.s,))
-        self.s.run()
-
-
-# Function to listen on a certain socket for other applications scanning,
-# to potentially communicate about online contacts and file transfer. This
-# function is ran on a separate thread.
-def listen_for_scan():
-    pass
 
 
 # Function to get contact info from user

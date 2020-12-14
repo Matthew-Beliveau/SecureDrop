@@ -1,7 +1,7 @@
 from utilities import USER_LIST
 from login import user_login
 from user_registration import user_registration
-from sd_shell import ScanTask, listen_for_scan, start_cmd
+from sd_shell import start_cmd
 from threading import Thread
 import os.path
 from network import communication_manager
@@ -35,17 +35,8 @@ def start_up():
 def run():
     start_up()
 
-    sc = ScanTask()
-    scanner = Thread(target=sc.scan_for_online_contacts)
-    listener = Thread(target=listen_for_scan)
     cmd = Thread(target=start_cmd)
 
-    # scanner.start()
-    # listener.start()
     cmd.start()
     communication_manager()
     cmd.join()
-    # listener.join()
-    #
-    # sc.terminate()
-    # scanner.join()

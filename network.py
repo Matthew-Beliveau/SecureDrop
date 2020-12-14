@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-import sys
 import ssl
 import socket
 from time import sleep
@@ -14,14 +12,6 @@ own_ip = None
 potential_contact = ()
 
 ignore_bcast_port = []
-
-
-def init_ip():
-    global own_ip
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("8.8.8.8", 80))
-    own_ip = s.getsockname()[0]
-    s.close()
 
 
 def port_manager(bport, lport):
@@ -53,14 +43,11 @@ class tcp_handler(BaseRequestHandler):
         This function is what can handle whether or not the sender is a contact
         """
         self.data = self.request.recv(1024).strip()
-        # self.data = eval(self.data)
-        # print("Echoing message from: {}".format(self.client_address[0]))
-        # print(self.data)
-        # print(type(self.data))
         try:
             if type(eval(self.data)) is tuple:
                 if contacts_dict_exist():
                     self.data = eval(self.data)
+                    # print(self.data)
                     email_exists = check_user_contact(self.data)
                     if email_exists:
                         self.request.sendall("Yes".encode())
@@ -69,18 +56,21 @@ class tcp_handler(BaseRequestHandler):
                 else:
                     self.request.sendall("No".encode())
         except SyntaxError:
-            with open("recieved_file", "wb") as f:
+            f = open("recieved_file", "wb")
+            f.write(self.data)
+            running = True
+            while running:
+                print("hang up in handle")
+                self.data = self.request.recv(1024)
+                if not self.data:
+                    break
+                if self.data.decode() == "stop":
+                    running = False
+                    break
                 f.write(self.data)
-                print("file opened")
-                while True:
-                    print("hang up in handle")
-                    self.data = self.request.recv(1024)
-                    if self.data == "stop":
-                        break
-                    print(self.data)
-                    f.write(self.data)
-
+            f.close()
             self.request.sendall("AWK from server".encode())
+        self.request.sendall("AWK from server".encode())
 
 
 def tcp_listener(port):
@@ -119,26 +109,24 @@ def tcp_client(port, data, is_file=False):
             s.close()
     elif is_file:
         try:
-            s.connect((host_ip, port))
             f = open(data, "rb")
+            s.connect((host_ip, port))
             l = f.read(1024)
             while l:
-                print("file hang up")
                 s.send(l)
+                print("Sent ", repr(l))
                 l = f.read(1024)
+            s.sendall("stop".encode())
             recieved = s.recv(1024)
         finally:
-            s.send("stop")
+            # s.send("stop")
             f.close()
             s.close()
 
-    # print("Bytes Sent:     {}".format(data))
-    # print("Bytes Recieved: {}".format(recieved.decode()))
     if recieved.decode() == "Yes":
         if potential_contact not in utilities.ONLINE_CONTACTS:
             utilities.ONLINE_CONTACTS.append(potential_contact)
             ignore_bcast_port.append(potential_contact[3])
-        # print(utilities.ONLINE_CONTACTS)
     elif recieved.decode() == "No":
         pass
     else:
@@ -146,7 +134,7 @@ def tcp_client(port, data, is_file=False):
 
 
 #######################################
-#          Broadcast Example          #
+#          Broadcast Handler          #
 #######################################
 
 
@@ -155,13 +143,12 @@ def broadcast_listener(socket):
         while True:
             data = socket.recvfrom(4096)
             data = eval(data[0])
-            # print(data)
             # code to check if in contacts
             email_exists = check_user_contact(data)
             global potential_contact
             potential_contact = data
             # send back a yes if in contacts, with information back
-            if email_exists:
+            if email_exists and potential_contact[3] not in ignore_bcast_port:
                 list = (
                     get_user_name_from_list(),
                     utilities.USER_EMAIL,
@@ -198,10 +185,6 @@ def broadcast_sender(port):
 
 
 def communication_manager():
-    # find own ip
-    init_ip()
-
-    # print(bcast_port, tcp_listen)
 
     # broadcast to other users that you exist
     broadcast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -239,16 +222,3 @@ def communication_manager():
                 sleep(0.1)
             if not p.is_alive():
                 print(p.join())
-
-
-#######################################
-#               Main                  #
-#######################################
-
-
-def main():
-    communication_manager()
-
-
-if __name__ == "__main__":
-    main()
