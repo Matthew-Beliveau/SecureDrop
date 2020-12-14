@@ -4,6 +4,7 @@ from user_registration import user_registration
 from sd_shell import ScanTask, listen_for_scan, start_cmd
 from threading import Thread
 import os.path
+from network import communication_manager
 
 
 # Handles the initial login. If there is not registered users, the function
@@ -39,11 +40,12 @@ def run():
     listener = Thread(target=listen_for_scan)
     cmd = Thread(target=start_cmd)
 
-    scanner.start()
-    listener.start()
+    # scanner.start()
+    # listener.start()
     cmd.start()
+    communication_manager()
     cmd.join()
-    listener.join()
-
-    sc.terminate()
-    scanner.join()
+    # listener.join()
+    #
+    # sc.terminate()
+    # scanner.join()

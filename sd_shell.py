@@ -1,4 +1,6 @@
-from utilities import ONLINE_CONTACTS, register_email
+from utilities import ONLINE_CONTACTS, register_email, user_contact_exist
+from utilities import USER_EMAIL
+import utilities
 from cmd import Cmd
 import time
 import json
@@ -50,7 +52,7 @@ def listen_for_scan():
 
 
 # Function to see if "contacts" field exists in json file
-def contacts_exist(user_dictionary):
+def contacts_dict_exist(user_dictionary):
     if "contacts" in user_dictionary:
         return True
     return False
@@ -61,17 +63,6 @@ def contact_details():
     name = input("Enter Full Name: ")
     email = register_email()
     return (email, name)
-
-
-# Function to check if the email the user wants to register as a contact
-# already exists
-def user_contact_exist(user_dictionary, email):
-    count = 0
-    for x in user_dictionary:
-        if user_dictionary[count].get("email") == email:
-            return True
-        count += 1
-    return False
 
 
 # function that removes old email ID and builds new email ID
@@ -112,7 +103,7 @@ def add_contact():
     # get all data associated with user
     u_dictionary = data["Users"][0][user_email]
 
-    if contacts_exist(u_dictionary):  # if user has already added a contact
+    if contacts_dict_exist(u_dictionary):  # if user has already added a contact
         email, name = contact_details()
         email_exist = user_contact_exist(
             data["Users"][0][user_email]["contacts"], email
@@ -161,7 +152,7 @@ class MyPrompt(Cmd):
         print("Add a new contact.")
 
     def do_list(self, inp):
-        print(ONLINE_CONTACTS)
+        print(utilities.ONLINE_CONTACTS)
 
     def help_list(self):
         print("List all online contacts.")

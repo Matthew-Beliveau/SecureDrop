@@ -5,8 +5,14 @@ import socket
 from time import sleep
 from multiprocessing import Process
 from socketserver import BaseRequestHandler, TCPServer
+from utilities import user_contact_exist, get_user_name_from_list
+from utilities import check_user_contact
+import utilities
+from threading import Thread
 
 own_ip = None
+
+potential_contact = ()
 
 
 def init_ip():
@@ -46,9 +52,14 @@ class tcp_handler(BaseRequestHandler):
         This function is what can handle whether or not the sender is a contact
         """
         self.data = self.request.recv(1024).strip()
-        print("Echoing message from: {}".format(self.client_address[0]))
+        self.data = eval(self.data)
+        # print("Echoing message from: {}".format(self.client_address[0]))
         # print(self.data)
-        self.request.sendall("AWK from server".encode())
+        email_exists = check_user_contact(self.data)
+        if email_exists:
+            self.request.sendall("Yes".encode())
+        elif not email_exists:
+            self.request.sendall("No".encode())
 
 
 def tcp_listener(port):
@@ -85,8 +96,14 @@ def tcp_client(port, data):
     finally:
         s.close()
 
-    print("Bytes Sent:     {}".format(data))
-    print("Bytes Recieved: {}".format(recieved.decode()))
+    # print("Bytes Sent:     {}".format(data))
+    # print("Bytes Recieved: {}".format(recieved.decode()))
+    if recieved.decode() == "Yes":
+        if potential_contact not in utilities.ONLINE_CONTACTS:
+            utilities.ONLINE_CONTACTS.append(potential_contact)
+        # print(utilities.ONLINE_CONTACTS)
+    if recieved.decode() == "No":
+        pass
 
 
 #######################################
@@ -101,28 +118,38 @@ def broadcast_listener(socket):
             data = eval(data[0])
             # right now print the data recieved, but later we will check it
             # against user's contact list, and see if contact is there.
-            print(data)
+            # print(data)
             # code to check if in contacts
-            ...
-            # send back a yes if in contacts
-            tcp_client(data[2], "Yes")
+            email_exists = check_user_contact(data)
+            global potential_contact
+            potential_contact = data
+            # send back a yes if in contacts, with information back
+            if email_exists:
+                list = (
+                    get_user_name_from_list(),
+                    utilities.USER_EMAIL,
+                    tcp_listen,
+                    bcast_port,
+                )
+                ls = str(list)
+                tcp_client(data[2], ls)
     except KeyboardInterrupt:
         pass
 
 
 def broadcast_sender(port):
-    arr = ("matt", "matt@gmail.com", tcp_listen)
-    msg = str(arr)
+    list = (get_user_name_from_list(), utilities.USER_EMAIL, tcp_listen, bcast_port)
+    msg = str(list)
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         while True:
             if port != bcast_port:
                 s.sendto(msg.encode(), ("255.255.255.255", port))
-            if port != 2000:
-                port += 1
-            elif port == 2000:
+            if port == 2000:
                 port = 1337
+            elif port != 2000:
+                port += 1
             sleep(0.01)  # goes through all the ports in about a minute
     except KeyboardInterrupt:
         pass
@@ -137,23 +164,23 @@ def communication_manager():
     # find own ip
     init_ip()
 
-    print(bcast_port, tcp_listen)
+    # print(bcast_port, tcp_listen)
 
     # broadcast to other users that you exist
     broadcast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     broadcast_socket.bind(("", bcast_port))
 
-    broadcast_listener_worker = Process(
+    broadcast_listener_worker = Thread(
         target=broadcast_listener,
         name="broadcast_listener_worker",
         args=(broadcast_socket,),
     )
 
-    broadcast_sender_worker = Process(
+    broadcast_sender_worker = Thread(
         target=broadcast_sender, name="broadcast_sender_worker", args=(bcast_port,)
     )
 
-    tcp_listener_worker = Process(
+    tcp_listener_worker = Thread(
         target=tcp_listener, name="tcp_listener_worker", args=(tcp_listen,)
     )
 
@@ -167,9 +194,6 @@ def communication_manager():
         for p in procs:
             print("Starting: {}".format(p.name))
             p.start()
-        while True:
-            tcp_client(tcp_port, input())
-            sleep(1)
 
     except KeyboardInterrupt:
         for p in procs:
@@ -185,13 +209,10 @@ def communication_manager():
 #               Main                  #
 #######################################
 
-
-def main():
-    if len(sys.argv) > 1:
-        communication_manager()
-    else:
-        communication_manager()
-
-
-if __name__ == "__main__":
-    main()
+#
+# def main():
+#     communication_manager()
+#
+#
+# if __name__ == "__main__":
+#     main()
