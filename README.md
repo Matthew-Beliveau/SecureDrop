@@ -19,7 +19,7 @@ chmod +x basic_cert.sh
 chmod +x network.py
 
 ### 2. Run and fill out basic_cert.sh
-./basic_cert.sh
+$ ./basic_cert.sh
 -----
 Country Name (2 letter code) [AU]:US
 State or Province Name (full name) [Some-State]:Massachusetts
