@@ -17,7 +17,6 @@ The project will be implemented as a command-line tool. We'll call the applicati
 In order the run the files from the repository we need to make sure basic_cert.sh and network.py can be run as executables. Run the following commands:
 ```
 chmod +x basic_cert.sh
-chmod +x network.py
 ```
 
 ### 2. Run and fill out basic_cert.sh
