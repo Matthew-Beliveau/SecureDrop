@@ -1,59 +1,9 @@
-from utilities import ONLINE_CONTACTS, register_email
+from utilities import ONLINE_CONTACTS, register_email, user_contact_exist
+from utilities import contacts_dict_exist
+from network import tcp_client
+import utilities
 from cmd import Cmd
-import time
 import json
-import sched
-
-
-class ScanTask:
-    def __init__(self):
-        self._running = True
-
-    def terminate(self):
-        self._running = False
-
-    def run(self):
-        self.scan_for_online_contacts()
-
-    s = sched.scheduler(time.time, time.sleep)
-
-    # Scheduled function to scan network on a certain socket to determine
-    # online contacts.
-    # TODO: add implementation in form of separate file.
-    def scan(self, sc):
-        """
-        This function is currently a placeholder for a real scanning
-        function/file. Real scan is to be added later. The plan is to have the
-        scan return a dictionary and store it in the variable ONLINE_CONTACTS.
-
-        Example code for how this function could interact with ONLINE_CONTACTS
-        is as follows:
-        global ONLINE_CONTACTS
-        ONLINE_CONTACTS = random.randint(100, size=(3))
-        """
-        if not self._running:
-            return None
-        self.s.enter(5, 1, self.scan, (sc,))
-
-    # Helper function to run scan on a certain interval. This function is ran
-    # on a separate thread.
-    def scan_for_online_contacts(self):
-        self.s.enter(5, 1, self.scan, (self.s,))
-        self.s.run()
-
-
-# Function to listen on a certain socket for other applications scanning,
-# to potentially communicate about online contacts and file transfer. This
-# function is ran on a separate thread.
-def listen_for_scan():
-    pass
-
-
-# Function to see if "contacts" field exists in json file
-def contacts_exist(user_dictionary):
-    if "contacts" in user_dictionary:
-        return True
-    return False
 
 
 # Function to get contact info from user
@@ -61,17 +11,6 @@ def contact_details():
     name = input("Enter Full Name: ")
     email = register_email()
     return (email, name)
-
-
-# Function to check if the email the user wants to register as a contact
-# already exists
-def user_contact_exist(user_dictionary, email):
-    count = 0
-    for x in user_dictionary:
-        if user_dictionary[count].get("email") == email:
-            return True
-        count += 1
-    return False
 
 
 # function that removes old email ID and builds new email ID
@@ -112,7 +51,7 @@ def add_contact():
     # get all data associated with user
     u_dictionary = data["Users"][0][user_email]
 
-    if contacts_exist(u_dictionary):  # if user has already added a contact
+    if contacts_dict_exist():  # if user has already added a contact
         email, name = contact_details()
         email_exist = user_contact_exist(
             data["Users"][0][user_email]["contacts"], email
@@ -144,21 +83,13 @@ def add_contact():
         fp.close()
 
 
-def list_all_user_contacts():
-    user_contact_email_addresses = []
-    count = 0
-
-    fp = open("user_list.json", "r+")
-    data = json.load(fp)
-    fp.close()
-
-    user_email = list(data["Users"][0].keys())[0]
-    u_dictionary = data["Users"][0][user_email]["contacts"]
-
-    for x in u_dictionary:
-        user_contact_email_addresses.append(u_dictionary[count].get("email"))
-        count += 1
-    return user_contact_email_addresses
+def send_file(file, email):
+    port = 0
+    for p in utilities.ONLINE_CONTACTS:
+        if p[1] == email:
+            port = p[2]
+            break
+    tcp_client(port, file, True)
 
 
 class MyPrompt(Cmd):
@@ -177,8 +108,16 @@ class MyPrompt(Cmd):
     def help_add(self):
         print("Add a new contact.")
 
+    def do_send(self, inp):
+        email = input("Enter email address: ")
+        file = input("Enter File: ")
+        send_file(file, email)
+
+    def help_send(self):
+        pass
+
     def do_list(self, inp):
-        print(ONLINE_CONTACTS)
+        print(utilities.ONLINE_CONTACTS)
 
     def help_list(self):
         print("List all online contacts.")
