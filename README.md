@@ -19,15 +19,15 @@ chmod +x basic_cert.sh
 chmod +x network.py
 
 ### 2. Run and fill out basic_cert.sh
-$ ./basic_cert.sh
------
+**./basic_cert.sh
+
 Country Name (2 letter code) [AU]:US
 State or Province Name (full name) [Some-State]:Massachusetts
 Locality Name (eg, city) []:Lowell
 Organization Name (eg, company) [Internet Widgits Pty Ltd]:UML
 Organizational Unit Name (eg, section) []:100
 Common Name (e.g. server FQDN or YOUR name) []:test.server
-Email Address []:server@gmail.com
+Email Address []:server@gmail.com**
 
 ### 3. Run secure_drop.py
 python3 secure_drop.py
