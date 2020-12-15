@@ -1,5 +1,6 @@
-from utilities import USER_LIST, MAX_TIMES_ALLOWED_TO_ENTER
+from utilities import USER_LIST, MAX_TIMES_ALLOWED_TO_ENTER, USER_EMAIL
 from utilities import check_email, get_password, hash_password
+import utilities
 import json
 
 
@@ -8,7 +9,9 @@ def login_helper():
     # their password a maximum of three times before exiting
     number_of_password_login_attempts = 0
     bool = False
+    global USER_EMAIL
     email = check_email()
+    utilities.USER_EMAIL = email
     # if email is None then the user mis-entered their email three times,
     # so exit
 
