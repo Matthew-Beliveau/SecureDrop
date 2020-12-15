@@ -1,0 +1,1 @@
+this is a test .txt file that is used to test whether the send functionality works
